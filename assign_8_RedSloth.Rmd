@@ -9,8 +9,8 @@ output: beamer_presentation
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r, include = FALSE}
 
-```{r}
 
 library(MASS)
 library(broom)
