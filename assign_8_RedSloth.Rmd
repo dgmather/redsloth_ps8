@@ -8,6 +8,11 @@ output: beamer_presentation
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Wald Test
+* Our distance metric will be $\frac{\hat{\beta_1}}{\hat{\beta_2}}-\frac{.3}{1.1}$
+* using the delta method, this is asymototically distributed as:
+$$\sqrt{n}(\frac{\hat{\beta}_1}{\hat{\beta}_2} ~ N(0, \sigma^2 R' Q_{xx}^{-1}R)$$
+ $$ R'=(0, \frac{1}{\beta _2}, - \frac{\beta_1}{\beta _2^2}) $$
 
 ```{r, include = FALSE}
 
