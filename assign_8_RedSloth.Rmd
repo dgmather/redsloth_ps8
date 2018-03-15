@@ -14,8 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 $$\sqrt{n}(\frac{\hat{\beta}_1}{\hat{\beta}_2} ~ N(0, \sigma^2 R' Q_{xx}^{-1}R)$$
  $$ R'=(0, \frac{1}{\beta _2}, - \frac{\beta_1}{\beta _2^2}) $$
 
-```{r, include = FALSE}
 
+```{r, include = FALSE}
 
 library(MASS)
 library(broom)
@@ -59,18 +59,28 @@ sim_reg <- function(n=100, B=200){
     summarise(boot_var = var(ratio_b),
               boot_var_mean = mean(vcov_b), 
               boot_mean = mean(ratio_b),
-              wtest_cval = quantile(W_test_b,probs = 0.95), 
-              wtest2_cval = quantile(W_test_b2,probs = 0.95))
+              wtest_cval = quantile(W_test_b,probs = 0.95),
+              wtest_reject = mean(W_test_b >= qchisq(0.95,df=1)),
+              wtest2_cval = quantile(W_test_b2,probs = 0.95),
+              wtest2_reject = mean(W_test_b2 >= qchisq(0.95,df=1))
+              )
 x_boot2
 ## results: original Wald and va, and boot aggregates
-data_frame(co_X1=co_X1, co_X2=co_X2, ratio=ratio,
+data_frame(co_X1=co_X1, 
+           co_X2=co_X2, 
+           ratio=ratio,
            W_test=W_test,
-           v=v) %>%
+           v=v,
+           crit= qchisq(0.95,df=1),
+           wald_q4 = as.numeric(t(x_boot2$boot_var_mean)*ratio*x_boot2$boot_var_mean)
+) %>%
   bind_cols(x_boot2)
 }
 
 sim_reg()
 ```
+
+
 ``` {r loopup, include = FALSE}
 sim_results <- sim_reg()
 cbind(sim_results, pchisq(as.numeric(sim_results[4]), df = 197, lower.tail = FALSE))
@@ -104,5 +114,15 @@ Based on these, we expect to reject less than 5% of the time
 # Actual wald distributions
 ``` {r, echo = FALSE}
 
-W_test <- pchisq(sim_results[,4], df=19, lower.tail=FALSE) 
+
+
+```
+
+#questions answered:
+*question 1: expeect to reject above 5% with bootstrap Wald, maybe with mean of bootstrap Wald, probably not with sample Wald (order of variance from biggest to smallest)
+*q2: see wtest_cval, wtest2_cval, crit--wtests have much bigger critical value than the actual asymptotic distribution
+*q3: see wtest_reject, wtest2_reject--we reject too many!
+*q4--I don't think this question makes any sense, but in any case see wald_q4
+*q5--compare w_test to wtest_cval? I think this gives the right qualitative answer--bootstrap variance is higher so the sample statistic is more likely to land inside the bottom 95 percentiles than it would be on the actual distribution it comes from--but maybe our calculations are wrong, IDK
+
 
