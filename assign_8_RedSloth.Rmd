@@ -71,3 +71,38 @@ data_frame(co_X1=co_X1, co_X2=co_X2, ratio=ratio,
 
 sim_reg()
 ```
+``` {r loopup, include = FALSE}
+sim_results <- sim_reg()
+cbind(sim_results, pchisq(as.numeric(sim_results[4]), df = 197, lower.tail = FALSE))
+for (i in 1:19) {
+  temp <- sim_reg()
+  cbind(temp, pchisq(as.numeric(temp[4]), df = 197, lower.tail = FALSE))
+  sim_results <- rbind(temp, sim_results)
+}
+
+sim_avg <- colMeans(sim_results)
+ratio_squared <- (sim_results[,1])^2
+ratio_squared_avg <- colMeans(ratio_squared)
+ratio_var <-  ratio_squared_avg[1] - (sim_avg[1])^2 
+```  
+# Simulations
+Our exact variance of the ratio is:
+``` {r, echo = FALSE}
+ratio_var
+```
+Our asymptotic variance is:
+<calculation based on above>
+
+our bootstrapped variance is:
+
+``` {r, echo = FALSE}
+sim_avg[6]
+```
+
+Based on these, we expect to reject less than 5% of the time
+
+# Actual wald distributions
+``` {r, echo = FALSE}
+
+W_test <- pchisq(sim_results[,4], df=19, lower.tail=FALSE) 
+
