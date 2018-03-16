@@ -98,52 +98,33 @@ ratio_squared_avg <- colMeans(ratio_squared)
 ratio_var <-  ratio_squared_avg[1] - (sim_avg[3])^2 
 ```  
 # Simulations
-Our exact variance of the ratio is:
-``` {r, echo = FALSE}
-ratio_var
-```
-Our asymptotic variance is:
-```{r, echo=FALSE}
-sim_avg[5]
-```
+Our exact variance of the ratio is: `r round(ratio_var, 3)`
 
-our bootstrapped variance is:
+Our asymptotic variance is: `r round(sim_avg[5], 3)`
 
-``` {r, echo = FALSE}
-sim_avg[9]
-```
+Our bootstrapped variance is: `r round(sim_avg[9], 3)`
 
 Based on these, we expect to reject the null hypothesis too often with the bootstrap Wald test.
 
-# Actual wald distributions with entire sample
-``` {r, echo = FALSE}
-sim_avg[4]
-```
+Actual wald distributions with entire sample: W_test = `r round(sim_avg[4], 3)`
 
 # Boostrap Wald statistics
 
-Bootstrap centered on the correct null hypothesis (95th percentile of bootstrap values, percent reject using the correct distribution)
-``` {r, echo = FALSE}
-sim_avg[11]
-sim_avg[12]
-```
+* Bootstrap centered on the correct null hypothesis (95th percentile of bootstrap values, percent reject using the correct distribution)
+* wtest_reject = `r sim_avg[11]`
+* wtest2_cval = `r sim_avg[12]`
 
-Bootstrap centered on the sample mean null hypothesis (95th percentile of bootstrap values, percent reject using the correct distribution)
-``` {r, echo = FALSE}
-sim_avg[13]
-sim_avg[14]
-```
+* Bootstrap centered on the sample mean null hypothesis (95th percentile of bootstrap values, percent reject using the correct distribution)
+* wtest2_reject = `r sim_avg[13]`
+* waldq4 = `r sim_avg[14]`
+
 We reject the null too often with bootstrap methods.
 
-# Question 4: modified Wald test with bootstrap variance estimator
-```{r, echo = FALSE}
-sim_avg[7]
-```
+# First and second bootsrap tests
+Question 4: Modified Wald test with bootstrap variance estimator (boot_var = `r sim_avg[7]`)
 
-# Question 5
-Since the 95th percentile of the bootstrap Wald is so far out, we naturally fail to reject the null.
+Question 5: Since the 95th percentile of the bootstrap Wald is so far out, we naturally fail to reject the null.
 
-# Cross-Validation
 ```{r, echo = FALSE}
 rm(list = ls())
 cat("\014")
@@ -183,15 +164,31 @@ mean.reg1.mse.out <- round(mean(crossval$value[201:300]), 3)
 mean.reg2.mse.out <- round(mean(crossval$value[301:400]), 3)
 
 mse.table = data.frame(reg1.in = mean.reg1.mse.in, reg2.in = mean.reg2.mse.in, reg1.out = mean.reg1.mse.out, reg2.out = mean.reg2.mse.out)
+
+reg1 <- lm(y~x1, data=data_df)
+reg2 <- lm(y~x1+x2, data=data_df)
+
+reg1.out.all <- mean((1-hatvalues(reg1))^-2 * residuals(reg1)^2) %>% round (3)
+reg2.out.all <- mean((1-hatvalues(reg2))^-2 * residuals(reg2)^2) %>% round(3)
+
+mse.table <- mutate(mse.table, reg1.out.all, reg2.out.all)
 ```
 
-The data frame, “crossval_df”, is 100 rows by 3 columns. Each row in the column, “test” contains a randomly chosen triple (y, x1, x2) from the 100 simulated observations. It is 1 row by 3 columns. Each row in the “train” column contains the other 99 observations. The column, “id” specifies which of the 100 observations is selected. It is 99 rows by 3 columns.
-
-The column, “model” in the data frame, “crossval” contains an indicator for the type of regression which is run on the data contained in “train”. The column, “mse” similarly contains an indicator for the type of mse’s that are calculated (one for the in sample regressions, and another for the out-sample predictions). The column, “value” contains the mse’s for the in-sample and out-sample regressions for both of the regression models.
-
-The column, “resids_out” gives the residuals from the out-sample regression. It takes the difference in the predicted value of y and the actual value of y. The ".x" is the independent variable from the excluded observation, which is used to predict dependent variable.
+# The data frame, "crossval" ($400 \times 8$)
+* id: ($100 \times 1$) identifies observation chosen for out-sample
+* train/test: ($100 \times 99$)/($100 \times 1$) randomly selects in-samples (99 obs) and out-samples (1 obs) 
+* model: ($200 \times 1$) identifies the regression model (short or long)
+* reg: (200 rows, number of columns undefined) contains regression results from the short and long regressions
+* mse_in/mse_out: ($200 \times 1$)/($200 \times 1$) calculates mean square error from in-sample and out-sample residuals (stacked into ($400 \times 1$) by "gather" function)
 
 # Mean squared errors
+* in-sample MSE is lower for the long regression since adding regressors decreses MSE
+* out-sample MSE is lower for long regression, though not by much
+* DGP is $y = 1.2 + 0.3 X_1 + e$ so $X_2$ doesn't add much explanatory power (overfitting the data)
+* in-sample MSE is lower for both models because it takes average of 99 squared residuals rather than just 1
+* the out-sample MSE is the same for the full data as in the simulation
+* $\frac{1}{n} \sum_{i = 1}^{n} \tilde{e_i}^2$ (3.46) exactly describes the process in the simulation
+
 ```{r tables, echo = FALSE, warning=FALSE}
 library(knitr)
 kable(mse.table)
