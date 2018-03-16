@@ -10,9 +10,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 # Wald Test
 * Our distance metric will be $\frac{\hat{\beta_1}}{\hat{\beta_2}}-\frac{.3}{1.1}$
-* using the delta method, this is asymototically distributed as:
-$$\sqrt{n}(\frac{\hat{\beta}_1}{\hat{\beta}_2} ~ N(0, \sigma^2 R' Q_{xx}^{-1}R)$$
+* using the delta method, this is asymptotically distributed as follows:
+$$N(0,  R' n\hat{V}_{\hat{\theta}}^{-1}R))$$
  $$ R'=(0, \frac{1}{\beta _2}, - \frac{\beta_1}{\beta _2^2}) $$
+ $$ \hat{\theta} =  \frac{\hat{\beta_1}}{\hat{\beta_2}}$$
+
 
 
 ```{r, include = FALSE}
@@ -31,7 +33,7 @@ sim_reg <- function(n=100, B=200){
   X <- mvrnorm(n=n, c(0, 0), Sigma = Sigma)
   y <- 1.2 + 0.3*X[,1]+1.1*X[,2]+rnorm(n)
   df <- data_frame(y=y, X1=X[,1], X2=X[,2])
-  
+
   ## reg
   reg <- lm(y~X1+X2, data=df)
   reg_su <- summary(reg)
@@ -62,7 +64,8 @@ sim_reg <- function(n=100, B=200){
               wtest_cval = quantile(W_test_b,probs = 0.95),
               wtest_reject = mean(W_test_b >= qchisq(0.95,df=1)),
               wtest2_cval = quantile(W_test_b2,probs = 0.95),
-              wtest2_reject = mean(W_test_b2 >= qchisq(0.95,df=1))
+              wtest2_reject = mean(W_test_b2 >= qchisq(0.95,df=1)),
+              wald_q4 = mean(as.numeric(t(ratio_b - 0.3/1.1)*boot_var_mean*(ratio_b - 0.3/1.1)))
               )
 x_boot2
 ## results: original Wald and va, and boot aggregates
@@ -71,8 +74,7 @@ data_frame(co_X1=co_X1,
            ratio=ratio,
            W_test=W_test,
            v=v,
-           crit= qchisq(0.95,df=1),
-           wald_q4 = as.numeric(t(x_boot2$boot_var_mean)*ratio*x_boot2$boot_var_mean)
+           crit= qchisq(0.95,df=1)
 ) %>%
   bind_cols(x_boot2)
 }
@@ -91,9 +93,9 @@ for (i in 1:19) {
 }
 
 sim_avg <- colMeans(sim_results)
-ratio_squared <- (sim_results[,1])^2
+ratio_squared <- (sim_results[,3])^2
 ratio_squared_avg <- colMeans(ratio_squared)
-ratio_var <-  ratio_squared_avg[1] - (sim_avg[1])^2 
+ratio_var <-  ratio_squared_avg[1] - (sim_avg[3])^2 
 ```  
 # Simulations
 Our exact variance of the ratio is:
@@ -101,28 +103,44 @@ Our exact variance of the ratio is:
 ratio_var
 ```
 Our asymptotic variance is:
-<calculation based on above>
+```{r, echo=FALSE}
+sim_avg[5]
+```
 
 our bootstrapped variance is:
 
 ``` {r, echo = FALSE}
-sim_avg[6]
+sim_avg[9]
 ```
 
-Based on these, we expect to reject less than 5% of the time
+Based on these, we expect to reject the null hypothesis too often with the bootstrap Wald test.
 
-# Actual wald distributions
+# Actual wald distributions with entire sample
 ``` {r, echo = FALSE}
-
-
-
+sim_avg[4]
 ```
 
-#questions answered:
-*question 1: expeect to reject above 5% with bootstrap Wald, maybe with mean of bootstrap Wald, probably not with sample Wald (order of variance from biggest to smallest)
-*q2: see wtest_cval, wtest2_cval, crit--wtests have much bigger critical value than the actual asymptotic distribution
-*q3: see wtest_reject, wtest2_reject--we reject too many!
-*q4--I don't think this question makes any sense, but in any case see wald_q4
-*q5--compare w_test to wtest_cval? I think this gives the right qualitative answer--bootstrap variance is higher so the sample statistic is more likely to land inside the bottom 95 percentiles than it would be on the actual distribution it comes from--but maybe our calculations are wrong, IDK
+# Boostrap Wald statistics
+
+Bootstrap centered on the correct null hypothesis (95th percentile of bootstrap values, percent reject using the correct distribution)
+``` {r, echo = FALSE}
+sim_avg[11]
+sim_avg[12]
+```
+
+Bootstrap centered on the sample mean null hypothesis (95th percentile of bootstrap values, percent reject using the correct distribution)
+``` {r, echo = FALSE}
+sim_avg[13]
+sim_avg[14]
+```
+We reject the null too often with bootstrap methods.
+
+# Question 4: modified Wald test with bootstrap variance estimator
+```{r, echo = FALSE}
+sim_avg[7]
+```
+
+# Question 5
+Since the 95th percentile of the bootstrap Wald is so far out, we naturally fail to reject the null.
 
 
