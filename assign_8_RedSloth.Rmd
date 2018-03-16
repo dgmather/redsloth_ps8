@@ -143,4 +143,74 @@ sim_avg[7]
 # Question 5
 Since the 95th percentile of the bootstrap Wald is so far out, we naturally fail to reject the null.
 
+# Cross-Validation
+```{r, echo = FALSE}
+rm(list = ls())
+cat("\014")
 
+library(tidyverse)
+library(MASS)
+
+# the package:MASS overwrote the function 'select'; redefine 'select' as the function from dplyr
+select <- dplyr::select
+
+library(modelr)
+
+# generate data
+n <- 100
+S <- matrix(c(1, 0.5, 0.5, 1), 2)
+set.seed(2018)
+X <- mvrnorm(n = n, mu = c(0,0), Sigma = S)
+y <- 1.2 + 0.3 * X[,1] + rnorm(n)
+
+data_df <- data.frame(y = y, x1 = X[,1], x2 = X[,2])
+
+# cross validation
+crossval_df <- crossv_kfold(data_df, k = n)
+
+crossval <- crossval_df %>%
+  mutate(reg1 = map(train, ~lm(y ~ x1, data = .)),
+         reg2 = map(train, ~lm(y ~ x1 + x2, data = .))) %>%
+  gather(model, reg, reg1, reg2) %>%
+  mutate(resids_out = map2_dbl(reg, test, ~ predict(.x, newdata = .y) - as.data.frame(.y)$y),
+         mse_in = map_dbl(reg, ~mean(residuals(.)^2)),
+         mse_out = map_dbl(resids_out, ~mean(.^2))) %>%
+  gather(mse, value, mse_in, mse_out)
+
+mean.reg1.mse.in <- round(mean(crossval$value[1:100]), 3)
+mean.reg2.mse.in <- round(mean(crossval$value[101:200]), 3)
+mean.reg1.mse.out <- round(mean(crossval$value[201:300]), 3)
+mean.reg2.mse.out <- round(mean(crossval$value[301:400]), 3)
+
+mse.table = data.frame(reg1.in = mean.reg1.mse.in, reg2.in = mean.reg2.mse.in, reg1.out = mean.reg1.mse.out, reg2.out = mean.reg2.mse.out)
+```
+
+Answers for Question 2: Cross-validation
+
+Q1
+
+The data frame, “crossval_df”, is 100 rows by 3 columns.
+
+Each row in the column, “test” contains a randomly chosen triple (y, x1, x2) from the 100 simulated observations. It is 1 row by 3 columns.
+
+Each row in the “train” column contains the other 99 observations. The column, “id” specifies which of the 100 observations is selected. It is 99 rows by 3 columns.
+
+The column, “model” in the data frame, “crossval” contains an indicator for the type of regression which is run on the data contained in “train”.
+
+The column, “mse” similarly contains an indicator for the type of mse’s that are calculated (one for the in sample regressions, and another for the out-sample predictions)
+
+The column, “value” contains the mse’s for the in-sample and out-sample regressions for each both of the regression models.
+
+The column, “resids_out” gives the residuals from the out-sample regression. It takes the difference in the predicted value of y and the actual value of y.
+
+Q2
+
+The in-sample mse’s are higher for reg1 than reg2. They are also higher for the out-sample regressions as well. Though the outsample regression mse’s are much closer.
+
+For both regressions, the in-sample mse’s are lower than the out-sample ones.
+
+# Mean squared errors
+```{r tables, echo = FALSE, warning=FALSE}
+library(knitr)
+kable(mse.table)
+```
